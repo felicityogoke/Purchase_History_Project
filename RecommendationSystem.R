@@ -84,7 +84,7 @@ t_price_matrix <- t(matrix_price_wide)
 dist_price_matrix <- dist(t_price_matrix,method = "cosine") # get distance
 
 dist_price_matrix <-as.matrix(dist_price_matrix) # distance matrix
-#View(dist_price_matrix)
+View(dist_price_matrix)
 
 sim_prices<- 1 - dist_price_matrix # similarity matrix
 #View(sim_prices)
@@ -93,16 +93,20 @@ sim_prices<- 1 - dist_price_matrix # similarity matrix
 
 
 # --------------------------------------------- BUILDING INDUSTRIAL CODE MATRIX --------------------------------------
-#View(table_users2) <- table_users
-table_users2[, value := table_users2$`Industrial code`]
+#View(table_users2) <- table_user
+table_users2 <- data.table(tbl$customer, tbl$categ,tbl$new_orders,tbl$domestic,tbl$ind_code)
+colnames(table_users2) <- c("Customers", "Products", "Price","Domestic", "Ind_code")
+#View(table_users2)
 
-table_users2$`Industrial code` <- as.numeric(factor(table_users2$`Industrial code`))
 
 
+table_users2$Ind_code <- as.numeric(factor(table_users2$Ind_code))
 
-View(table_users2)
+table_users2[, value := Ind_code]
 
-is.numeric(table_users2$`Industrial code`)
+#View(table_users2)
+
+is.numeric(table_users2$Ind_code)
 
 Indcode_wide <- reshape(data = table_users2,
                       direction = "wide",
@@ -121,7 +125,7 @@ vector_customers <- Indcode_wide[, Customers] # store customers in vector
 Indcode_wide[, Customers := NULL]
 Indcode_wide[, Price := NULL]
 Indcode_wide[, Domestic := NULL]
-Indcode_wide[,"Industrial code" := NULL]
+Indcode_wide[,Ind_code := NULL]
 
 # changing name of columns to the product id's
 setnames(x = Indcode_wide,
@@ -129,7 +133,7 @@ setnames(x = Indcode_wide,
          new = substring(names(Indcode_wide), 7))
 
 
-View(Indcode_wide)
+# View(Indcode_wide)
 # We need to store the matrix within a recommenderlab object. 
 # For this purpose, we need to convert table_wide into a matrix first. 
 # In addition, we need to set the row names equal to the user names:
@@ -137,19 +141,91 @@ View(Indcode_wide)
 matrix_Indcode_wide <- as.matrix(Indcode_wide)   # convert to matrix
 rownames(matrix_Indcode_wide) <- vector_customers
 
-#View(matrix_Indcode_wide)
+View(matrix_Indcode_wide)
 
-# transpose matrix price 
-View(t_Indcode_matrix)<- t(matrix_Indcode_wide)
+# transpose matrix ind_code 
+t_Indcode_matrix <- t(matrix_Indcode_wide)
 
 #View(matrix_Indcode_wide)
 dist_Indcode_matrix<- dist(t_Indcode_matrix, method = "cosine") # get distance
 
-dist_Indcode_matrix<-as.matrix(dist_Indcode_matrix) # distance matrix
+dist_Indcode_matrix <- as.matrix(dist_Indcode_matrix) # distance matrix
 View(dist_Indcode_matrix)
 
 sim_Indcode <- 1 - dist_Indcode_matrix # similarity matrix
 View(sim_Indcode)
+
+
+
+
+
+# --------------------------------------------- BUILDING DOMESTIC MATRIX --------------------------------------
+#View(table_users2) <- table_user
+table_users3 <- data.table(tbl$customer, tbl$categ,tbl$new_orders,tbl$domestic,tbl$ind_code)
+colnames(table_users3) <- c("Customers", "Products", "Price","Domestic", "Ind_code")
+#View(table_users2)
+
+
+
+table_users3$Domestic <- as.numeric(factor(table_users3$Domestic))
+
+table_users3[, value := Domestic]
+
+
+is.numeric(table_users3$Domestic)
+
+Domestic_wide <- reshape(data = table_users3,
+                        direction = "wide",
+                        idvar = "Customers",
+                        timevar = "Products",
+                        v.names = "value")
+
+
+View(Domestic_wide)
+# In order to build the matrix, we need to keep only the columns containing the products status.
+# In addition, the customer id will be the matrix row names, so we need to store them in the vector_customers vector:
+
+vector_customers <- Domestic_wide[, Customers] # store customers in vector
+
+
+Domestic_wide[, Customers := NULL]
+Domestic_wide[, Price := NULL]
+Domestic_wide[, Domestic := NULL]
+Domestic_wide[,Ind_code := NULL]
+
+# changing name of columns to the product id's
+setnames(x = Domestic_wide,
+         old = names(Domestic_wide),
+         new = substring(names(Domestic_wide), 7))
+
+
+# View(Indcode_wide)
+# We need to store the matrix within a recommenderlab object. 
+# For this purpose, we need to convert table_wide into a matrix first. 
+# In addition, we need to set the row names equal to the user names:
+
+matrix_Domestic_wide <- as.matrix(Domestic_wide)   # convert to matrix
+rownames(matrix_Domestic_wide) <- vector_customers
+
+View(matrix_Domestic_wide)
+
+# transpose matrix ind_code 
+t_Domestic_matrix<- t(matrix_Domestic_wide)
+
+#View(matrix_Indcode_wide)
+dist_Domestic_matrix<- dist(t_Domestic_matrix, method = "cosine") # get distance
+
+dist_Domestic_matrix <- as.matrix(dist_Domestic_matrix) # distance matrix
+View(dist_Domestic_matrix)
+
+sim_Domestic<- 1 - dist_Domestic_matrix # similarity matrix
+View(sim_Domestic)
+
+
+
+
+
+
 
 
 
@@ -224,9 +300,10 @@ View(sim_purchases)
 
 #--------------------------------item description based matrix--------------------------------
 
-# Let's compare the dimensions of sim_purchases with dist_ratings:
+# Let's compare the dimensions of sim_prices,sim_purchases and sim_Indcode :
 dim(sim_prices) # [1] 2013 2013
 dim(sim_purchases) # [1] 716 716
+dim(sim_Indcode)
 class(sim_prices) # [1] "matrix" "array" 
 
 
@@ -237,31 +314,36 @@ class(sim_prices) # [1] "matrix" "array"
 #colnames(sim_prices) <- table_items[, Products]
 
 View(sim_prices)
-# Now, it's sufficient to extract the names from dist_purchases and subset dist_domestic:
+# Now, it's sufficient to extract the names from sim_purchases and subset sim_prices:
 vector_items <- rownames(sim_purchases)
 sim_prices <- sim_prices[vector_items, vector_items]
 
+
+# extract the names from sim_purchases and subset sim_prices:
+
+sim_Indcode <- sim_prices[vector_items, vector_items]
+
 # Let's check whether the two matrices match:
 
-identical(dim(sim_prices), dim(sim_purchases))
+identical(dim(sim_prices), dim(sim_purchases),dim(sim_Indcode))
 
-identical(rownames(sim_prices), rownames(sim_purchases))
+identical(rownames(sim_purchases),rownames(sim_Indcode))
 
-identical(colnames(sim_prices), colnames(sim_purchases))
+identical(colnames(sim_prices),colnames(sim_Indcode))
 
-
+identical(colnames(sim_purchases),colnames(sim_Indcode))
 
 #Everything is identical, so they match. Let's take a look at dist_domestic:
 image(sim_prices)
 image(sim_purchases)
+image(sim_Indcode)
 
 
 
 # We need to combine the two tables, and we can do it with a weighted average.
 # we can set the weight of dist_domestic to 25 percent:
 
-weight_category <- 0.50
-dist_tot <- sim_prices * weight_category + sim_purchases * (1 - weight_category)
+dist_tot <- sim_prices * 0.30 + sim_purchases * 0.40 + sim_Indcode*0.30
 
 
 # Let's take a look at the dist_tot matrix using image:
@@ -289,3 +371,4 @@ recc_matrix <- sapply(recc_predicted@items, function(x){
 View(recc_matrix)
 
 recc_matrix[,"100612776"]
+
